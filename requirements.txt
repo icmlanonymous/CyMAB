@@ -1,3 +1,4 @@
 SMPyBandits
+tqdm
 numpy
 matplotlib
