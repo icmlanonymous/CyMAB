@@ -582,7 +582,7 @@ class mabplt:
 		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, show=show)
 
 		
-	def plot_comp_algs_cumulated_negative_budget(self, i=None, xlabel="Algorithm", ylabel="Cumulated Negative Budget", title="Comparison", sort=True, bar_labels=True, show=True):
+	def plot_comp_algs_cumulated_negative_budget(self, i=None, xlabel="Algorithm", ylabel="Cumulated Negative Budget", title="Comparison", sort=True, bar_labels=False, show=True):
 
 		if i is None:
 			Y = self.M.snmb
