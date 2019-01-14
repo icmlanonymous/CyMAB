@@ -537,7 +537,7 @@ class mabplt:
 		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
 
 
-	def plot_comp_algs_survival_time(self, i=None, xlabel="Algorithm", ylabel="Average Survival Time", title="Comparison (Average Survival Time)", sort=True, show=True):
+	def plot_comp_algs_survival_time(self, i=None, xlabel="Algorithm", ylabel="Average Survival Time", title="Comparison (Average Survival Time)", sort=True, filename=None, show=True):
 
 		if i is None:
 			Y = self.M.MTTNB
