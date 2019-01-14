@@ -2,3 +2,4 @@ SMPyBandits
 numpy
 pandas
 matplotlib
+tqdm
