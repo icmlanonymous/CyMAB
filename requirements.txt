@@ -1,3 +1,4 @@
 SMPyBandits
 numpy
+pandas
 matplotlib

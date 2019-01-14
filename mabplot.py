@@ -14,7 +14,7 @@ class mabplt:
 	""" 
 	Plot the graph
 	"""
-	def _call_plot(self, xlabel=None, ylabel=None, title=None, names=None, show=True):
+	def _call_plot(self, xlabel=None, ylabel=None, title=None, names=None, filename=None, show=True):
 		
 		if names is not None:
 			plt.legend(names)
@@ -28,6 +28,9 @@ class mabplt:
 		if title is not None:
 			plt.title(title)
 
+		if filename is None:
+			plt.savefig(filename)
+			
 		if show:
 			plt.show()
 
@@ -35,7 +38,7 @@ class mabplt:
 	""" 
 	Plot a line graph
 	"""
-	def _plot_progression(self, Y, X=None, names=None, linestyles=None, linecolors=None, xlabel="$t$", ylabel="Value", title=None, show=True):
+	def _plot_progression(self, Y, X=None, names=None, linestyles=None, linecolors=None, xlabel="$t$", ylabel="Value", title=None, filename=None, show=True):
 
 		if Y.ndim > 1:
 			if X is None:
@@ -53,7 +56,7 @@ class mabplt:
 				X = range(len(Y))
 			plt.plot(X, Y)
 
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, names=names, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, names=names, filename=filename, show=show)
 		
 		
 	""" 
@@ -68,7 +71,7 @@ class mabplt:
 		else:
 			plt.bar(self.M.K1, Y)
 		
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, names=names, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, names=names, filename=filename, show=show)
 
 
 	""" 
@@ -76,7 +79,7 @@ class mabplt:
 	 i : repetition
 	 j : algorithm 
 	"""
-	def plot_history(self, i, j, xlabel='$t$', ylabel='Arm', title='History of pulled arms', alpha=0.5, markersize=None, show=True):
+	def plot_history(self, i, j, xlabel='$t$', ylabel='Arm', title='History of pulled arms', alpha=0.5, markersize=None, filename=None, show=True):
 
 		plt.plot(self.M.T1, self.M.H1[i,j], 'o', markersize=markersize, alpha=alpha)
 
@@ -84,7 +87,7 @@ class mabplt:
 		plt.ylim([0.5, self.M.k+0.5])
 		plt.gca().invert_yaxis()    
 
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
 			
 			
 	""" 
@@ -427,7 +430,7 @@ class mabplt:
 		self._plot_progression(Y, X=self.M.T1, names=names, xlabel=xlabel, ylabel=ylabel, title=title, show=show)
 
 		
-	def plot_freq_spectrum(self, F, bar_size=2, interpolation='hanning', cmap='gray_r', xlabel="$t$", ylabel="Actions", title="Frequency Spectrum", show=True):
+	def plot_freq_spectrum(self, F, bar_size=2, interpolation='hanning', cmap='gray_r', xlabel="$t$", ylabel="Actions", title="Frequency Spectrum", filename=None, show=True):
 		
 		bs = max(bar_size, 2)   #bar size (>1)
 		h = self.M.k*bs+1     	#fig height (rows depends on the number of arms and bar size)
@@ -448,7 +451,7 @@ class mabplt:
 		
 		plt.colorbar()
 
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
 
 			
 			
@@ -508,7 +511,7 @@ class mabplt:
 		self._plot_comp_arms(Y, names=names, xlabel=xlabel, ylabel=ylabel, title=title)
 
 		
-	def plot_comp_algs_total_rewards(self, i=None, xlabel="Algorithm", ylabel="Total Reward", title="Comparison (Total Reward)", sort=True, show=True):
+	def plot_comp_algs_total_rewards(self, i=None, xlabel="Algorithm", ylabel="Total Reward", title="Comparison (Total Reward)", sort=True, filename=None, show=True):
 
 		if i is None:
 			Y = self.M.msr
@@ -531,7 +534,7 @@ class mabplt:
 		plt.xticks(x, names, rotation='vertical')		
 		plt.bar(x, Y, align='center', alpha=0.5)
 
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
 
 
 	def plot_comp_algs_survival_time(self, i=None, xlabel="Algorithm", ylabel="Average Survival Time", title="Comparison (Average Survival Time)", sort=True, show=True):
@@ -557,10 +560,10 @@ class mabplt:
 		plt.xticks(x, names, rotation='vertical')		
 		plt.bar(x, Y, align='center', alpha=0.5)
 
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
 
 
-	def plot_comp_algs_ruined_episodes(self, xlabel="Algorithm", ylabel="Survival Episodes", title="Comparison (Survival Episodes)", sort=True, show=True):
+	def plot_comp_algs_ruined_episodes(self, xlabel="Algorithm", ylabel="Survival Episodes", title="Comparison (Survival Episodes)", sort=True, filename=None, show=True):
 
 		Y = self.M.n - self.M.senb
 		x = np.arange(self.M.m, dtype='int')
@@ -579,10 +582,10 @@ class mabplt:
 		plt.xticks(x, names, rotation='vertical')		
 		plt.bar(x, Y, align='center', alpha=0.5)
 
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
 
 		
-	def plot_comp_algs_cumulated_negative_budget(self, i=None, xlabel="Algorithm", ylabel="Cumulated Negative Budget", title="Comparison", sort=True, bar_labels=False, show=True):
+	def plot_comp_algs_cumulated_negative_budget(self, i=None, xlabel="Algorithm", ylabel="Cumulated Negative Budget", title="Comparison", sort=True, bar_labels=False, filename=None, show=True):
 
 		if i is None:
 			Y = self.M.snmb
@@ -613,10 +616,10 @@ class mabplt:
 					'%d' % int(height),
 					ha='center', va='bottom')
 		
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
 			
 			
-	def plot_comp_freq_prop(self, i=None, j=None, names=['Cumulated Reward Proportion', 'Pull Frequency'], xlabel="$t$", ylabel="Cumulated Reward Proportion and Pull Frequency", title="Cumulated Reward and Number of Pulls", show=True):
+	def plot_comp_freq_prop(self, i=None, j=None, names=['Cumulated Reward Proportion', 'Pull Frequency'], xlabel="$t$", ylabel="Cumulated Reward Proportion and Pull Frequency", title="Cumulated Reward and Number of Pulls", filename=None, show=True):
 
 		#verify parameters
 		if j is None:
@@ -633,10 +636,10 @@ class mabplt:
 		if names is not None:
 			plt.legend(names)
 
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
 
 		
-	def plot_reward_regret(self, i=None, j=None, names=['Cumulated Reward', 'Cumulated Regret', 'Best Strategy', 'Worst Possible Regret'], xlabel="$t$", ylabel="Reward and Regret", title="Best Strategy vs Cumulated Reward vs Regret ", show=True):
+	def plot_reward_regret(self, i=None, j=None, names=['Cumulated Reward', 'Cumulated Regret', 'Best Strategy', 'Worst Possible Regret'], xlabel="$t$", ylabel="Reward and Regret", title="Best Strategy vs Cumulated Reward vs Regret ", filename=None, show=True):
 
 		#verify parameters
 		if j is None:
@@ -665,10 +668,10 @@ class mabplt:
 			plt.fill_between(self.M.T1, 0, self.M.SR[i,j], alpha=0.5)
 			plt.fill_between(self.M.T1, 0, -self.M.SL[i,j], alpha=0.5)
 
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
 
 
-	def plot_survival_histogram(self, j=None, xlabel="$t$", ylabel="Time before ruin", title="Survival Time Histogram", show=True):
+	def plot_survival_histogram(self, j=None, xlabel="$t$", ylabel="Time before ruin", title="Survival Time Histogram", filename=None, show=True):
 
 		#verify parameters
 		if j is None:
@@ -684,10 +687,10 @@ class mabplt:
 		plt.hist(Y, bins=logbins) #log=True
 		plt.xscale('log')
 
-		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, show=show)
+		self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
 
 		
-def plot_gaussian_distributions(means, sigmas):
+def plot_gaussian_distributions(means, sigmas, minr, maxr):
 
 	#show distributions
 	x = np.linspace(minr, maxr, 1000)

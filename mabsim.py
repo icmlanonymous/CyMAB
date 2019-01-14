@@ -259,32 +259,31 @@ class mabs:
 
 		#final cumulated time on negative budget
 		stnb = STNB[:,:,self.tau-1]
+		
 		self.stnmb = self.STNMB[:,self.tau-1]
-		#self.mstnb = self.MSTNB[:,self.tau-1]
+		
+		self.mstnb = np.mean(stnb, axis=0)
 
 		#ruin episodes
 		self.senb = np.count_nonzero(stnb, axis=0) 
 		
-		if not self.save_only_means:
-			#negative budget progression
-			NB = np.array([[[v if(v<0) else 0 for v in B_ij] for B_ij in B_i] for B_i in B])
+		#negative budget progression
+		NB = np.array([[[v if(v<0) else 0 for v in B_ij] for B_ij in B_i] for B_i in B])
 		
 		#average negative budget progression
 		self.NMB = np.array([[v if(v<0) else 0 for v in MB_j] for MB_j in self.MB])
 
-		if not self.save_only_means:
-			#cumulated negative budget progression
-			SNB = np.cumsum(NB, axis=2, dtype='float')
+		#cumulated negative budget progression
+		SNB = np.cumsum(NB, axis=2, dtype='float')
 		
 		#self.MSNB = np.mean(SNB, axis=0)
 		
 		#cumulated negative budget progression on average
 		self.SNMB = np.cumsum(self.NMB, axis=1, dtype='float') 
 		
-		if not self.save_only_means:
-			#final cumulated negative budget
-			snb = SNB[:,:,self.tau-1]
+		#final cumulated negative budget
+		snb = SNB[:,:,self.tau-1]
 			
-		#self.smnb = self.SMNB[:,self.tau-1]
 		self.snmb = self.SNMB[:,self.tau-1]
-		
+
+		self.msnb = np.mean(snb, axis=0)
