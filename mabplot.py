@@ -28,7 +28,7 @@ class mabplt:
 		if title is not None:
 			plt.title(title)
 
-		if filename is None:
+		if filename is not None:
 			plt.savefig(filename)
 			
 		if show:
