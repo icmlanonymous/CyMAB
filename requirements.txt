@@ -1,5 +1,7 @@
 SMPyBandits
 numpy
+scipy
+math
 pandas
 matplotlib
 tqdm
