@@ -1,6 +1,7 @@
-
 import numpy as np
-from SMPyBandits.Policies import EpsilonGreedy, EpsilonDecreasing, UCBalpha, klUCB
+from SMPyBandits.Policies import EpsilonGreedy, EpsilonDecreasing, UCB, UCBalpha, klUCB
+from scipy.stats import beta
+from math import sqrt, log
 
 class ClassicEpsilonGreedy(EpsilonGreedy):
 
@@ -22,7 +23,7 @@ class ClassicEpsilonGreedy(EpsilonGreedy):
             #biased_means = self.rewards / (1 + self.pulls)
             estimated_means = self.rewards / np.maximum(1, self.pulls)
             return np.random.choice(np.flatnonzero(estimated_means == np.max(estimated_means)))
-			
+
 class ClassicEpsilonDecreasing(ClassicEpsilonGreedy):
     r""" The epsilon-decreasing random policy.
 
@@ -41,7 +42,7 @@ class ClassicEpsilonDecreasing(ClassicEpsilonGreedy):
     def epsilon(self):
         r"""Decreasing :math:`\varepsilon(t) = \min(1, \varepsilon_0 / \max(1, t))`."""
         return min(1, self._epsilon / max(1, self.t))
-		
+
 class ClassicOptimisticGreedy(ClassicEpsilonGreedy):
     
     def __init__(self, nbArms, epsilon=0.0, init_estimation=10.0, lower=0., amplitude=1.):
@@ -63,110 +64,165 @@ class ClassicOptimisticGreedy(ClassicEpsilonGreedy):
             # Uniform choice among the best arms
             estimated_means = (self.rewards + self.init_estimation) / (self.pulls + 1)
             return np.random.choice(np.flatnonzero(estimated_means == np.max(estimated_means)))
-			
-			
 
+class SafeAlg:
 
-class SafeArm:
+    def __init__(self, nbArms, inibudget=10.0, safebudget=1.0):
+        self.inibudget=inibudget
+        self.safebudget=safebudget
+        self.totalreward=0.0
+        self.budget=inibudget
+        self.estmeans = np.zeros(nbArms)
 
-	def __init__(self, nbArms, inibudget=10.0, safebudget=1.0):
-		self.inibudget=inibudget
-		self.safebudget=safebudget
-		self.totalreward=0.0
-		self.budget=inibudget
-		self.estmeans = np.zeros(nbArms)
+    def startGame(self):
+        self.totalreward = 0.0
+        self.budget=self.inibudget
+        self.estmeans.fill(0.0)
 
-	def startGame(self):
-		self.totalreward = 0.0
-		self.budget=self.inibudget
-		self.estmeans.fill(0.0)
-		
-	def getReward(self, arm, reward):
-		self.totalreward += reward
-		self.budget += reward
-		self.estmeans[arm] = (self.estmeans[arm] * (self.pulls[arm]-1) + reward) / self.pulls[arm]
-		
-	def choice(self):
-		#sufficient budget
-		if self.budget > self.safebudget:
-			return None
-		#low budget
-		else:
-			if np.max(self.estmeans) > 0:
-				# Uniform choice among the best arms
-				return np.random.choice(np.flatnonzero(self.estmeans == np.max(self.estmeans)))
-			else:
-				return None
+    def getReward(self, arm, reward):
+        self.totalreward += reward
+        self.budget += reward
+        self.estmeans[arm] = (self.estmeans[arm] * (self.pulls[arm]-1) + reward) / self.pulls[arm]
 
+    def choice(self):
+        #sufficient budget
+        if self.budget > self.safebudget:
+            return None
+        #low budget
+        else:
+            if np.max(self.estmeans) > 0:
+                # Uniform choice among the best arms
+                return np.random.choice(np.flatnonzero(self.estmeans == np.max(self.estmeans)))
+            else:
+                return None
 
-class SafeKLUCB(klUCB, SafeArm):
+class SafeUCB(UCB, SafeAlg):
 
-	def __str__(self):
- 		return f"Safe-KL-UCB($b_s={self.safebudget}$)"
-   
-	def __init__(self, nbArms, inibudget=10.0, safebudget=1.0, lower=-1.0, amplitude=2.0):
-		klUCB.__init__(self, nbArms, lower=lower, amplitude=amplitude)
-		SafeArm.__init__(self, nbArms)
+    def __str__(self):
+        return f"Safe-UCB($b_s={self.safebudget}$)"
 
-	def startGame(self):
-		klUCB.startGame(self)
-		SafeArm.startGame(self)
-		
-	def getReward(self, arm, reward):
-		klUCB.getReward(self, arm, reward)
-		SafeArm.getReward(self, arm, reward)
-		
-	def choice(self):
-		r = SafeArm.choice(self)
-		if r is None:
-			r = klUCB.choice(self)
-		return r
+    def __init__(self, nbArms, inibudget=10.0, safebudget=1.0, lower=-1.0, amplitude=2.0):
+        UCB.__init__(self, nbArms, lower=lower, amplitude=amplitude)
+        SafeAlg.__init__(self, nbArms)
 
+    def startGame(self):
+        UCB.startGame(self)
+        SafeAlg.startGame(self)
 
-class SafeUCBalpha(UCBalpha, SafeArm):
+    def getReward(self, arm, reward):
+        UCB.getReward(self, arm, reward)
+        SafeAlg.getReward(self, arm, reward)
 
-	def __str__(self):
- 		return f"Safe-UCB($a={self.alpha}, b_s={self.safebudget}$)"
-		#return r"UCB($\alpha={:.3g}$)".format(self.alpha)
-   
-	def __init__(self, nbArms, alpha=4.0, inibudget=10.0, safebudget=1.0, lower=-1.0, amplitude=2.0):
-		UCBalpha.__init__(self, nbArms, alpha=alpha, lower=lower, amplitude=amplitude)
-		SafeArm.__init__(self, nbArms)
+    def choice(self):
+        r = SafeAlg.choice(self)
+        if r is None:
+            r = UCB.choice(self)
+        return r
 
-	def startGame(self):
-		UCBalpha.startGame(self)
-		SafeArm.startGame(self)
-		
-	def getReward(self, arm, reward):
-		UCBalpha.getReward(self, arm, reward)
-		SafeArm.getReward(self, arm, reward)
-		
-	def choice(self):
-		r = SafeArm.choice(self)
-		if r is None:
-			r = UCBalpha.choice(self)
-		return r
+class SafeKLUCB(klUCB, SafeAlg):
 
+    def __str__(self):
+        return f"Safe-KL-UCB($b_s={self.safebudget}$)"
 
-class SafeEpsilonGreedy(ClassicEpsilonGreedy, SafeArm):
+    def __init__(self, nbArms, inibudget=10.0, safebudget=1.0, lower=-1.0, amplitude=2.0):
+        klUCB.__init__(self, nbArms, lower=lower, amplitude=amplitude)
+        SafeAlg.__init__(self, nbArms)
+
+    def startGame(self):
+        klUCB.startGame(self)
+        SafeAlg.startGame(self)
+
+    def getReward(self, arm, reward):
+        klUCB.getReward(self, arm, reward)
+        SafeAlg.getReward(self, arm, reward)
+
+    def choice(self):
+        r = SafeAlg.choice(self)
+        if r is None:
+            r = klUCB.choice(self)
+        return r
+
+class SafeUCBalpha(UCBalpha, SafeAlg):
+
+    def __str__(self):
+        return f"Safe-UCB($a={self.alpha}, b_s={self.safebudget}$)"
+        #return r"UCB($\alpha={:.3g}$)".format(self.alpha)
+
+    def __init__(self, nbArms, alpha=4.0, inibudget=10.0, safebudget=1.0, lower=-1.0, amplitude=2.0):
+        UCBalpha.__init__(self, nbArms, alpha=alpha, lower=lower, amplitude=amplitude)
+        SafeAlg.__init__(self, nbArms)
+
+    def startGame(self):
+        UCBalpha.startGame(self)
+        SafeAlg.startGame(self)
+
+    def getReward(self, arm, reward):
+        UCBalpha.getReward(self, arm, reward)
+        SafeAlg.getReward(self, arm, reward)
+
+    def choice(self):
+        r = SafeAlg.choice(self)
+        if r is None:
+            r = UCBalpha.choice(self)
+        return r
+
+class SafeEpsilonGreedy(ClassicEpsilonGreedy, SafeAlg):
+
+    def __str__(self):
+        return f"Safe-$\epsilon$-greedy($\epsilon={self._epsilon}, b_s={self.safebudget}$)"
+
+    def __init__(self, nbArms, epsilon=0.1, inibudget=10.0, safebudget=1.0, lower=-1.0, amplitude=2.0):
+        ClassicEpsilonGreedy.__init__(self, nbArms, epsilon=epsilon, lower=lower, amplitude=amplitude)
+        SafeAlg.__init__(self, nbArms)
+
+    def startGame(self):
+        ClassicEpsilonGreedy.startGame(self)
+        SafeAlg.startGame(self)
+
+    def getReward(self, arm, reward):
+        ClassicEpsilonGreedy.getReward(self, arm, reward)
+        SafeAlg.getReward(self, arm, reward)
+
+    def choice(self):
+        r = SafeAlg.choice(self)
+        if r is None:
+            r = ClassicEpsilonGreedy.choice(self)
+        return r
+
     
-	def __str__(self):
-		return f"Safe-$\epsilon$-greedy($\epsilon={self._epsilon}, b_s={self.safebudget}$)"
+class GamblerBayesUCB(UCB):
+    
+    def __init__(self, nbArms, inibudget=10.0, lower=-1.0, amplitude=2.0):
+        UCB.__init__(self, nbArms, lower=lower, amplitude=amplitude)
+        self.inibudget=inibudget
+        self.budget=inibudget
+        self.estmeans = np.zeros(nbArms)
+        self.successes = np.zeros(nbArms, dtype='int')
 
-	def __init__(self, nbArms, epsilon=0.1, inibudget=10.0, safebudget=1.0, lower=-1.0, amplitude=2.0):
-		ClassicEpsilonGreedy.__init__(self, nbArms, epsilon=epsilon, lower=lower, amplitude=amplitude)
-		SafeArm.__init__(self, nbArms)
+    def startGame(self):
+        UCB.startGame(self)
+        self.budget=self.inibudget
+        self.estmeans.fill(0.0)
+        self.successes.fill(0)
 
-	def startGame(self):
-		ClassicEpsilonGreedy.startGame(self)
-		SafeArm.startGame(self)
-		
-	def getReward(self, arm, reward):
-		ClassicEpsilonGreedy.getReward(self, arm, reward)
-		SafeArm.getReward(self, arm, reward)
-		
-	def choice(self):
-		r = SafeArm.choice(self)
-		if r is None:
-			r = ClassicEpsilonGreedy.choice(self)
-		return r
+    def getReward(self, arm, reward):
+        UCB.getReward(self, arm, reward)
+        self.budget += reward
+        self.estmeans[arm] = (self.estmeans[arm] * (self.pulls[arm]-1) + reward) / self.pulls[arm]
+        if(reward > 0):
+            self.successes[arm] += 1
+            
+    def computeIndex(self, arm):
+        if self.pulls[arm] < 1:
+            return float('+inf')
+        else:
+            #v = self.estmeans[arm]
+            #v = self.rewards[arm] / self.pulls[arm]
+            v = beta.cdf(0.5, self.pulls[arm]-self.successes[arm]+1, self.successes[arm]+1)
+            #u = sqrt((2 * max(1, log(self.t))) / self.pulls[arm])
+            u = sqrt((2 * log(self.budget)) / self.pulls[arm]) if (self.budget >= 1) else 0
+            return  v + u 
+
+    def computeAllIndex(self):
+        for arm in range(self.nbArms):
+            self.index[arm] = self.computeIndex(arm)
