@@ -188,7 +188,7 @@ class mabplt:
      i : repetition (None for an average over repetitions)
      j : algorithm (None for all)
     """
-    def plot_cumulated_reward_progression(self, i=None, j=None, xlabel="$t$", ylabel="Cumulated Reward", title="Cumulated Reward", show=True):		
+    def plot_cumulated_reward_progression(self, i=None, j=None, xlabel="$t$", ylabel="Cumulated Reward", title="Cumulated Reward", show=True):
 
         #prepare data
         if j is None:  #comparing algorithms
@@ -521,19 +521,17 @@ class mabplt:
         self._plot_comp_arms(Y, names=names, xlabel=xlabel, ylabel=ylabel, title=title)
 
 
-    def plot_comp_algs_total_rewards(self, i=None, xlabel="Algorithm", ylabel="Total Reward", title="Comparison (Total Reward)", sort=True, filename=None, show=True):
-
-        if i is None:
-            Y = self.M.msr
-        else:
-            Y = self.M.sr[i]
+    def _call_plot_comp_algs(self, Y, xlabel="Algorithms", ylabel="Value", title="Comparison", sort=True, names=None, names_rotation='vertical', bar_labels=False, compact_view=True, filename=None, show=True):
 
         x = np.arange(self.M.m, dtype='int')
-        names = [str(g) for g in self.M.G]
+        
+        if names is None:
+            names = [str(g) for g in self.M.G]
 
-        low = min(Y)
-        high = max(Y)
-        plt.ylim([low, high])
+        if compact_view:
+            low = min(Y)
+            high = max(Y)
+            plt.ylim([low, high])
 
         #sort
         if sort:
@@ -541,82 +539,8 @@ class mabplt:
             Y = Y[idx]
             names = [names[i] for i in idx]
 
-        plt.xticks(x, names, rotation='vertical')		
+        plt.xticks(x, names, rotation=names_rotation)
         plt.bar(x, Y, align='center', alpha=0.5)
-
-        self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
-
-
-    def plot_comp_algs_survival_time(self, i=None, xlabel="Algorithm", ylabel="Average Survival Time", title="Comparison (Average Survival Time)", sort=True, filename=None, show=True):
-
-        if i is None:
-            Y = self.M.MTTNB
-        else:
-            Y = self.M.TTNB[i]
-
-        x = np.arange(self.M.m, dtype='int')
-        names = [str(g) for g in self.M.G]
-
-        low = min(Y)
-        high = max(Y)
-        plt.ylim([low, high])
-
-        #sort
-        if sort:
-            idx = np.argsort(Y)[::-1]  #desc order
-            Y = Y[idx]
-            names = [names[i] for i in idx]
-
-        plt.xticks(x, names, rotation='vertical')		
-        plt.bar(x, Y, align='center', alpha=0.5)
-
-        self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
-
-
-    def plot_comp_algs_ruined_episodes(self, xlabel="Algorithm", ylabel="Survival Episodes", title="Comparison (Survival Episodes)", sort=True, filename=None, show=True):
-
-        Y = self.M.n - self.M.senb
-        x = np.arange(self.M.m, dtype='int')
-        names = [str(g) for g in self.M.G]
-
-        low = min(Y)
-        high = max(Y)
-        plt.ylim([low, high])
-
-        #sort
-        if sort:
-            idx = np.argsort(Y)[::-1]  #desc order
-            Y = Y[idx]
-            names = [names[i] for i in idx]
-
-        plt.xticks(x, names, rotation='vertical')		
-        plt.bar(x, Y, align='center', alpha=0.5)
-
-        self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
-
-
-    def plot_comp_algs_cumulated_negative_budget(self, i=None, xlabel="Algorithm", ylabel="Cumulated Negative Budget", title="Comparison", sort=True, bar_labels=False, filename=None, show=True):
-
-        if i is None:
-            Y = self.M.snmb
-        else:
-            Y = self.M.snb[i]
-
-        x = np.arange(self.M.m, dtype='int')
-        names = [str(g) for g in self.M.G]
-
-        low = min(Y)
-        high = max(Y)
-        plt.ylim([low, high])
-
-        #sort
-        if sort:
-            idx = np.argsort(Y)[::-1]  #desc order
-            Y = Y[idx]
-            names = [names[i] for i in idx]
-
-        plt.xticks(x, names, rotation='vertical')		
-        bars = plt.bar(x, Y, align='center', alpha=0.5)
 
         #bar labels
         if bar_labels:
@@ -625,8 +549,32 @@ class mabplt:
                 plt.text(bar.get_x() + bar.get_width()/2., 1.05*height,
                     '%d' % int(height),
                     ha='center', va='bottom')
-
+        
         self._call_plot(xlabel=xlabel, ylabel=ylabel, title=title, filename=filename, show=show)
+        
+        
+    def plot_comp_algs_total_rewards(self, i=None, xlabel="Algorithm", ylabel="Total Reward", title="Comparison (Total Reward)", sort=True, names=None, names_rotation='vertical', bar_labels=False, compact_view=True, filename=None, show=True):
+
+        Y = self.M.msr if i is None else self.M.sr[i]
+        self._call_plot_comp_algs(Y, xlabel=xlabel, ylabel=ylabel, title=title, sort=sort, names=names, names_rotation=names_rotation, bar_labels=bar_labels, compact_view=compact_view, filename=filename, show=show)
+
+
+    def plot_comp_algs_survival_time(self, i=None, xlabel="Algorithm", ylabel="Average Survival Time", title="Comparison (Average Survival Time)", sort=True, names=None, names_rotation='vertical', bar_labels=False, compact_view=True, filename=None, show=True):
+
+        Y = self.M.MTTNB if i is None else self.M.TTNB[i]
+        self._call_plot_comp_algs(Y, xlabel=xlabel, ylabel=ylabel, title=title, sort=sort, names=names, names_rotation=names_rotation, bar_labels=bar_labels, compact_view=compact_view, filename=filename, show=show)
+
+
+    def plot_comp_algs_ruined_episodes(self, xlabel="Algorithm", ylabel="Survival Episodes", title="Comparison (Survival Episodes)", sort=True, names=None, names_rotation='vertical', bar_labels=False, compact_view=True, filename=None, show=True):
+
+        Y = self.M.n - self.M.senb
+        self._call_plot_comp_algs(Y, xlabel=xlabel, ylabel=ylabel, title=title, sort=sort, names=names, names_rotation=names_rotation, bar_labels=bar_labels, compact_view=compact_view, filename=filename, show=show)
+
+
+    def plot_comp_algs_cumulated_negative_budget(self, i=None, xlabel="Algorithm", ylabel="Cumulated Negative Budget", title="Comparison", sort=True, names=None, names_rotation='vertical', bar_labels=False, compact_view=True, filename=None, show=True):
+
+        Y = self.M.snmb if i is None else self.M.snb[i]
+        self._call_plot_comp_algs(Y, xlabel=xlabel, ylabel=ylabel, title=title, sort=sort, names=names, names_rotation=names_rotation, bar_labels=bar_labels, compact_view=compact_view, filename=filename, show=show)
 
 
     def plot_comp_freq_prop(self, i=None, j=None, names=['Cumulated Reward Proportion', 'Pull Frequency'], xlabel="$t$", ylabel="Cumulated Reward Proportion and Pull Frequency", title="Cumulated Reward and Number of Pulls", filename=None, show=True):
