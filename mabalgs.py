@@ -1,5 +1,5 @@
 import numpy as np
-from SMPyBandits.Policies import EpsilonGreedy, EpsilonDecreasing, UCB, UCBalpha, klUCB
+from SMPyBandits.Policies import EpsilonGreedy, EpsilonDecreasing, UCB, UCBalpha, klUCB, BayesUCB
 from scipy.stats import beta
 from math import sqrt, log
 
@@ -190,7 +190,89 @@ class SafeEpsilonGreedy(ClassicEpsilonGreedy, SafeAlg):
         return r
 
     
-class GamblerBayesUCB(UCB):
+    
+class GamblerBayesUCB(BayesUCB):
+    """ The Bayes-UCB policy, replacing $t$ by $b$.
+
+    - By default, it uses a Beta posterior (:class:`Policies.Posterior.Beta`), one by arm.
+    -Reference: [Kaufmann, Cappé & Garivier - AISTATS, 2012].
+    """
+
+    def __init__(self, nbArms, inibudget=10.0, lower=-1.0, amplitude=2.0):
+        BayesUCB.__init__(self, nbArms, lower=lower, amplitude=amplitude)
+        self.inibudget=inibudget
+        self.budget=inibudget
+
+    def startGame(self):
+        BayesUCB.startGame(self)
+        self.budget=self.inibudget
+
+    def getReward(self, arm, reward):
+        UCB.getReward(self, arm, reward)
+        self.budget += reward
+
+    def computeIndex(self, arm):
+        r""" Compute the current index, at time t and after :math:`N_k(t)` pulls of arm k, giving :math:`S_k(t)` rewards of 1, by taking the :math:`1 - \frac{1}{\min(b, 2)}` quantile from the Beta posterior:
+
+        .. math:: I_k(t) = \mathrm{Quantile}\left(\mathrm{Beta}(1 + S_k(t), 1 + N_k(t) - S_k(t)), 1 - \frac{1}{\min(b,2)}\right).
+        """
+        return self.posterior[arm].quantile(1. - 1. / (1 + min2, self.budget))
+    
+
+    
+class PositiveGamblerUCB(UCB):
+    
+    def __init__(self, nbArms, inibudget=10.0, lower=-1.0, amplitude=2.0):
+        UCB.__init__(self, nbArms, lower=lower, amplitude=amplitude)
+        self.inibudget=inibudget
+        self.budget=inibudget
+        self.estmeans = np.zeros(nbArms)
+        self.successes = np.zeros(nbArms, dtype='int')
+
+    def startGame(self):
+        UCB.startGame(self)
+        self.budget=self.inibudget
+        self.estmeans.fill(0.0)
+        self.successes.fill(0)
+
+    def getReward(self, arm, reward):
+        UCB.getReward(self, arm, reward)
+        self.budget += reward
+        self.estmeans[arm] = (self.estmeans[arm] * (self.pulls[arm]-1) + reward) / self.pulls[arm]
+        if(reward > 0):
+            self.successes[arm] += 1
+            
+    def computeIndex(self, arm):
+        
+        if self.pulls[arm] < 1:
+        
+            return float('+inf')
+        
+        else:
+        
+            #v = self.estmeans[arm]  #UCB1
+            #v = self.rewards[arm] / self.pulls[arm]  #UCB1
+            
+            #PositiveHoeffdingGambler
+            v = 1/2 * np.exp(-(2.0 * self.pulls[arm]**2 * self.estmeans[arm]**2) / (self.pulls[arm] * self.amplitude**2)) 
+            if (self.estmeans[arm] > 0) :
+                v = 1-v
+            
+            #v = beta.cdf(0.5, self.pulls[arm]-self.successes[arm]+1, self.successes[arm]+1)  #PositiveBernoulliGambler
+            
+            #u = sqrt((2 * max(1, log(self.t))) / self.pulls[arm])   #UCB1 
+            u = sqrt((2 * log(self.budget)) / self.pulls[arm]) if (self.budget >= 1) else 0
+            
+            return  v + u 
+
+    def computeAllIndex(self):
+        for arm in range(self.nbArms):
+            self.index[arm] = self.computeIndex(arm)
+            
+            
+            
+    
+class GamblerBernoulliUCB(UCB):
     
     def __init__(self, nbArms, inibudget=10.0, lower=-1.0, amplitude=2.0):
         UCB.__init__(self, nbArms, lower=lower, amplitude=amplitude)
